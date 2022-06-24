@@ -156,7 +156,8 @@ http-proxy-middleware 2.0.3
         yarn add less less-loader --dev
     ```
     然后修改config/webpack.config.js：
-    ```
+
+    ```js
           // style files regexes
     const cssRegex = /\.css$/;
     const cssModuleRegex = /\.module\.css$/;
@@ -234,6 +235,7 @@ http-proxy-middleware 2.0.3
 +     ),
 +   },
     ```
+
     其实就是把上面sass配置代码复制一遍，改成less。按照以上操作后，项目已支持less。
 #### d.支持Stylus
 支持Stylus和Less一样，首先安装stylus和stylus-loader：
