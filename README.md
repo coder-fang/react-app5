@@ -157,7 +157,7 @@ http-proxy-middleware 2.0.3
     ```
     然后修改config/webpack.config.js：
 
-    ```js
+```js
           // style files regexes
     const cssRegex = /\.css$/;
     const cssModuleRegex = /\.module\.css$/;
@@ -234,7 +234,7 @@ http-proxy-middleware 2.0.3
 +       'less-loader'
 +     ),
 +   },
-    ```
+```
 
     其实就是把上面sass配置代码复制一遍，改成less。按照以上操作后，项目已支持less。
 #### d.支持Stylus
@@ -244,7 +244,7 @@ http-proxy-middleware 2.0.3
     yarn add stylus stylus-loader --dev
 ```
 安装完成后，按照上面的支持less的方法，修改config/webpack.config.js：
-```
+```js
    // style files regexes
     const cssRegex = /\.css$/;
     const cssModuleRegex = /\.module\.css$/;
@@ -295,7 +295,8 @@ http-proxy-middleware 2.0.3
 #### e.设置路径别名
 为了方便项目使用相对路径，可以给项目设置路径别名。
 修改config/webpack.config.js:
-```
+
+```js
 alias: {
     // Support React Native Web
     // https://www.smashingmagazine.com/2016/08/a-glimpse-into-the-future-with-react-native-for-web/
@@ -309,6 +310,7 @@ alias: {
 +   	'@': path.join(__dirname, '..', 'src'),
     },
 ```
+
 这样在js代码开头的import路径中，直接使用@表示"src根目录"，不用自己去数有多少个“../”了。
 #### f.禁止build项目时生成map文件
 map文件，即js的source map文件，是为了解决被混淆压缩的js在调试的时候，能够快速定位到压缩前的源代码的辅助性文件。这个文件发布出去，会暴露源代码。因此，建议直接禁止build时生成map文件。
@@ -324,12 +326,12 @@ map文件，即js的source map文件，是为了解决被混淆压缩的js在调
 本教程以Stylus为csst预处理语言。
 在frame.styl里引入其他公用样式。
 src/common/stylus/frame.styl：
-```
+```css
 @import './reset.styl';
 @import './global.styl';
 ```
 src/common/stylus/global.styl：
-```
+```css
 /*清浮动*/
 .clearfix:after
   content: "."
@@ -349,7 +351,7 @@ src/common/stylus/global.styl：
 src/common/stylus/reset.styl：
 创建文件后，代码为空即可。因为本教程后续要引入Ant Design，因此不需要自行设置reset样式。
 然后在src/index.js里引入frame.styl：
-```
+```js
    import React from 'react'
 	import ReactDOM from 'react-dom'
 	import App from './App'
@@ -372,7 +374,7 @@ Ant Design 的样式非常多，但项目中可能只使用了其中个别的组
 yarn addd babel-plugin-import --dev
 ```
 修改package.json:
-```
+```json
  "babel": {
         "presets": [
             "react-app"
@@ -389,7 +391,7 @@ M       ],
     }
 ```
 然后修改src/App.jsx 来验证下Antd：
-```
+```js
 import { Button } from 'antd'
 
 function App() {
@@ -409,7 +411,7 @@ export default App
 #### b.设置Antd为中文语言
 Antd 默认语言是英文，需进行以下设置调整为中文。
 修改src/index.js
-```
+```js
  import React from 'react'
     import ReactDOM from 'react-dom'
 +   import { ConfigProvider } from 'antd'
