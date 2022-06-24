@@ -319,3 +319,467 @@ map文件，即js的source map文件，是为了解决被混淆压缩的js在调
 ### (3)项目架构搭建
     根据第二部分的项目目录开始构建项目。
 #### a. 设置全局共用样式
+本教程以Stylus为csst预处理语言。
+在frame.styl里引入其他公用样式。
+src/common/stylus/frame.styl：
+```
+@import './reset.styl';
+@import './global.styl';
+```
+src/common/stylus/global.styl：
+```
+/*清浮动*/
+.clearfix:after
+  content: "."
+  display: block
+  height: 0
+  clear: both
+  visibility: hidden
+.clearfix
+  display:block
+
+.G-col-error
+  color: #f81d22
+
+.G-col-succ
+  color: #0b8235
+```
+src/common/stylus/reset.styl：
+创建文件后，代码为空即可。因为本教程后续要引入Ant Design，因此不需要自行设置reset样式。
+然后在src/index.js里引入frame.styl：
+```
+   import React from 'react'
+	import ReactDOM from 'react-dom'
+	import App from './App'
++	// 全局样式
++	import '@/common/stylus/frame.styl'
+	
+	ReactDOM.render(<App />, document.getElementById('root'))
+```
+这样在所有页面里就可以直接使用全局样式了。
+
+### (4) 引入Ant Design
+执行：
+```
+yarn add antd
+```
+#### a.实现按需加载
+Ant Design 的样式非常多，但项目中可能只使用了其中个别的组件，没有必要加载全局样式。我们可以使用babel-plugin-import实现样式的按需加载。
+安装babel-plugin-import:
+```
+yarn addd babel-plugin-import --dev
+```
+修改package.json:
+```
+ "babel": {
+        "presets": [
+            "react-app"
+M       ],
++       "plugins": [
++           [
++               "import",
++               {
++                   "libraryName": "antd",
++                   "style": "css"
++               }
++           ]
++       ]
+    }
+```
+然后修改src/App.jsx 来验证下Antd：
+```
+import { Button } from 'antd'
+
+function App() {
+    return (
+        <div className="App">
+            <h1>React-App5</h1>
+            <Button type="primary">Button</Button>
+        </div>
+    )
+}
+export default App
+```
+执行`yarn start`:
+[图片https://pic1.zhimg.com/80/v2-53c18eaaa208aa3bbc80432ab152c8ac_1440w.jpg]
+
+可以看到Antd的Button组件正常显示出来了，而且Antd的页面reset样式也生效了。
+#### b.设置Antd为中文语言
+Antd 默认语言是英文，需进行以下设置调整为中文。
+修改src/index.js
+```
+ import React from 'react'
+    import ReactDOM from 'react-dom'
++   import { ConfigProvider } from 'antd'
++   import zhCN from 'antd/es/locale/zh_CN'
+    import App from './App'
+    // 全局样式
+	import '@/common/stylus/frame.styl'
+    
++   const antdConfig = {
++       locale: zhCN,
++   }
+    
+M   ReactDOM.render(
++       <ConfigProvider {...antdConfig}>
++           <App />
++       </ConfigProvider>,
++       document.getElementById('root')
++   )
+```
+### (5)页面开发
+本教程包含两个页面，login和home。
+在pages文件夹下新建home和login文件夹，home下新建index.js和home.styl,login下新建index.js和login.styl。
+#### a.构建login页面
+src/pages/login/index.jsx：
+```jsx
+import { Button, Input } from 'antd'
+import imgLogo from './logo.png'
+import './login.styl'
+
+function Login() {
+
+    return (
+        <div className="P-login">
+            <img src={imgLogo} alt="" className="logo" />
+            <div className="ipt-con">
+                <Input placeholder="账号" />
+            </div>
+            <div className="ipt-con">
+                <Input.Password placeholder="密码" />
+            </div>
+            <div className="ipt-con">
+                <Button type="primary" block={true}>
+                    登录
+                </Button>
+            </div>
+        </div>
+    )
+}
+
+export default Login
+```
+src/pages/login/login.styl：
+```css
+.P-login
+    position: absolute
+    top: 0
+    bottom: 0
+    width: 100%
+    background: #7adbcb
+    .logo
+        display: block
+        margin: 50px auto 20px
+    .ipt-con
+        margin: 0 auto 20px
+        width: 400px
+        text-align: center
+```
+暂时修改下入口文件代码，把原App页面换成login页面，看看效果：
+src/index.js：
+```js
+-   import App from './App'
++   import App from '@/pages/login'
+```
+#### b.构建home页面
+src/pages/home/index.js：
+```js
+import { Button } from 'antd'
+import './home.styl'
+
+function Home() {
+
+    return (
+        <div className="P-home">
+            <h1>Home Page</h1>
+            <div className="ipt-con">
+                <Button>返回登录</Button>
+            </div>
+        </div>
+    )
+}
+
+export default Home
+```
+src/pages/home/home.styl：
+```css
+.P-home
+    position: absolute
+    top: 0
+    bottom: 0
+    width: 100%
+    background: linear-gradient(#f48c8d,#f4c58d)
+    h1
+        margin-top: 50px
+        text-align: center
+        color: #fff
+    .ipt-con
+        margin: 20px auto 0
+        text-align: center
+```
+暂时修改下入口文件代码，把初始页面换成home页面，看一下效果：
+src/index.js
+```js
+-   import App from '@/pages/login'
++   import App from '@/pages/home'
+```
+
+#### c.实现页面路由跳转
+安装react-router-dom：`yarn add react-router-dom`
+现在，App.jsx正式作为路由配置项，进行代码重构。
+```jsx
+import { HashRouter, Route, Routes, Navigate } from 'react-router-dom'
+import Login from '@/pages/login'
+import Home from '@/pages/home'
+
+function App() {
+    return (
+        <HashRouter>
+            <Routes>
+                {/* 路由精确匹配"/home"，跳转Home页面 */}
+                <Route exact path="/home" element={<Home />} />
+                {/* 路由精确匹配"/login"，跳转Login页面 */}
+                <Route exact path="/login" element={<Login />} />
+                {/* 未匹配，则跳转Login页面 */}
+                <Route path="*" element={<Navigate to="/login" />} />
+            </Routes>
+        </HashRouter>
+    )
+}
+
+export default App
+```
+不要忘记把src/index.js入口文件中初始页面改为App.jsx
+src/index.js中：
+```js
+-   import App from '@/pages/home'
++   import App from './App'
+```
+执行`yarn start`启动项目，输入对应的路由地址，就可以正常访问对应的页面了。
+> login页面：localhost:3000/#/login
+> home页面：localhost:3000/#/home
+
+#### d.在React组件中实现页面路由跳转
+下面要实现的功能是，点击login页面的“登录”按钮，跳转至home页面。
+修改src/pages/login/index.jsx：
+```jsx
++   import { useNavigate } from 'react-router-dom'
+    import { Button, Input } from 'antd'
+    import imgLogo from './logo.png'
+    import './login.styl'
+    
+    function Login() {
+    
++       // 创建路由钩子
++       const navigate = useNavigate()
+    
+        return (
+
+            ...（略）
+    
+            <div className="ipt-con">
+M               <Button type="primary" block={true} onClick={()=>{navigate('/home')}}>登录</Button>
+            </div>
+
+            ...（略）
+```
+同样的方法，再来实现点击home页面的“返回登录”按钮，跳转至login页面。
+修改src/pages/home/index.jsx:
+```jsx
++   import { useNavigate } from 'react-router-dom'
+    import { Button } from 'antd'
+    import './home.styl'
+    
+    function Home() {
+    
++       // 创建路由钩子
++       const navigate = useNavigate()
+    
+        return (
+            <div className="P-home">
+                <h1>Home Page</h1>
+                <div className="ipt-con">
+M                   <Button onClick={()=>{navigate('/login')}}>返回登录</Button>
+                </div>
+            </div>
+        )
+    }
+    
+    export default Home
+```
+现在，点击按钮进行页面路由跳转已经实现了。
+#### e.在非React组件中实现页面路由跳转
+在实际项目中，经常需要在非React组件中进行页面跳转。比如，当进行API请求的时候，如果发现登录认证已失效，就直接跳转至login页面；当API请求失效时，进行统一的报错提示。
+以上这些情况的统一处理，当然是封装成公用的模块最合适。但往往这些纯功能性的模块都不是React组件，也就是纯原生js。所有就没办法使用useNavigate()了。
+
+如何实现在非React组件中进行页面路由跳转：
+需要安装额外的history依赖包。
+执行`yarn add history@4.10.1`
+安装完成后，新建目录及文件，src/api/index.js：
+```js
+import { createHashHistory } from 'history'
+
+let history = createHashHistory()
+
+export const goto = (path) => {
+    history.push(path)
+}
+```
+在src/pages/home/index.jsx中调用goto方法：
+```js
+  import { useNavigate } from 'react-router-dom'
+    import { Button } from 'antd'
++   import { goto } from '@/api'
+    import './home.styl'
+    
+    function Home() {
+    
+        // 创建路由钩子
+        const navigate = useNavigate()
+    
+        return (
+            <div className="P-home">
+                <h1>Home Page</h1>
++               <div className="ipt-con">
++                   <Button onClick={()=>{goto('/login')}}>组件外跳转</Button>
++               </div>
+                <div className="ipt-con">
+                    <Button onClick={()=>{navigate('/login')}}>返回登录</Button>
+                </div>
+            </div>
+        )
+    }
+    
+    export default Home
+```
+在home页点击“组件外跳转”按钮，可以正常跳转至login页面了，而实际执行跳转的代码是在src/api/index.js（非React组件）中，这样就非常适合封装统一的处理逻辑。
+### (6)组件开发
+#### a.创建Header组件
+目录结构变动如下：
+>    |  ├─ /components   <-- 公共模块组件目录
+>+   |  |  ├─ /header    <-- 公用header组件
+>+   |  |  |  ├─ index.js 
+>+   |  |  |  └─ header.styl
+
+src/components/header/index.js代码：
+```js
+import './header.styl'
+
+function Header() {
+    return <div className="M-header">Header</div>
+}
+
+export default Header
+```
+src/components/header/header.styl：
+```css
+.M-header
+    height: 40px
+    line-height: 40px
+    font-size: 36px
+    color: #fff
+    background: #409EFF
+```
+#### b.引入Header组件
+在login页面里引入Header组件。
+src/pages/login/index.js：
+```js
+  import { useNavigate } from 'react-router-dom'
+    import { Button, Input } from 'antd'
+    import imgLogo from './logo.png'
++   import Header from '@/components/header'
+    import './login.styl'
+
+    function Login() {
+	    // 创建路由钩子
+	    const navigate = useNavigate()
+
+	    return (
+	        <div className="P-login">
+M	            <Header />
+	            <img src={imgLogo} alt="" className="logo" />
+	            <div className="ipt-con">
+	                <Input placeholder="账号" />
+	            </div>
+
+	            ...（略）
+```
+同样的方式在home页面里引入Header组件。
+
+src/pages/home/index.js：
+```js
+  import { useNavigate } from 'react-router-dom'
+    import { Button } from 'antd'
++   import Header from '@/components/header'
+    import { goto } from '@/api'
+    import './home.styl'
+    
+    function Home() {
+        // 创建路由钩子
+        const navigate = useNavigate()
+    
+        return (
+            <div className="P-home">
++               <Header />
+                <h1>Home Page</h1>
+```
+运行项目，Header组件已经成功加入。
+#### c.组件传参
+使用过vue的同学都知道，vue组件有data和props。
+
+data是组件内的数据；
+
+props用来接收父组件传递来的数据。
+
+在React中，如果使用的是Class方式定义的组件：
+
+state是组件内的数据；
+
+props用来接收父组件传递来的数据。
+
+如果使用的是function方式定义的组件（也叫无状态组件）：
+
+使用useState()管理组件内的数据（hook）；
+
+使用props接收父组件传递来的数据。
+
+Class组件有明确的声明周期管理，但是代码相对来说不如无状态组件简洁优雅。
+
+无状态组件通过hook管理声明周期，效率更高。因此本教程全程使用无状态组件进行讲解。
+
+下面简单演示下如何实现向子组件传递数据。
+
+通过login和home分别向Header组件传递不同的值，并显示在Header组件中。
+
+修改src/pages/login/index.js：
+```js
+   ...（略）
+M   <Header title="login" info={()=>{console.log('info:login')}}/>
+    ...（略）
+```
+修改src/pages/home/index.js：
+```js
+    ...（略）
+M   <Header title="home" info={()=>{console.log('info:home')}}/>
+    ...（略）
+```
+修改src/components/header/index.js：
+```js
+   import './header.styl'
+    
+M   function Header(props) {
+    
++       // 接收来自父组件的数据
++       const { title, info } = props
+    
++       // 如果info存在，则执行info()
++       info && info()
+    
+M       return <div className="M-header">Header:{title}</div>
+    }
+    
+    export default Header
+```
+运行看下已经生效。
+#### d.React Developer Tools 浏览器插件
+为了方便调试react项目，建议安装chrome插件。
