@@ -125,17 +125,23 @@ http-proxy-middleware 2.0.3
 ### （1）初始化项目：npx create-react-app react-app5
     如果一直报错you are running create-react-app 4.0.3 which is behind the latest release (5.0.0)，说明你使用了旧版本的create-react-app，需要先清除npx缓存，执行`npx clear-npx-cache`,然后再执行`npx create-react-app react-app5`。
 ### （2）webpack配置：
-####    a.执行此文件，暴露配置文件： `yarn eject` 
+#### a.执行此命令，暴露配置文件
+ `yarn eject` 
+
     eject之前必须确保当前工程所有文件已经提交git,否则会报以下错误：Remove untracked files, stash or commit any changes, and try again.
     需要先在根目录下执行，提交git: 
+
     ```
         git add .
         git commit -m "init project before eject"
     ```
+
     然后再执行：
+
     ```
         yarn eject
     ```
+
     即可完成webpack的暴露，这时项目中会多出一个config文件夹，里面是webpack的相关配置文件。
 #### b.支持Sass/Scss
     eject之后，虽然package.json以及webpack.config.js中有了sass相关代码，但是要正确使用Sass/Scss，还要安装node-sass。
