@@ -374,7 +374,7 @@ Ant Design 的样式非常多，但项目中可能只使用了其中个别的组
 yarn addd babel-plugin-import --dev
 ```
 修改package.json:
-```json
+```js
  "babel": {
         "presets": [
             "react-app"
