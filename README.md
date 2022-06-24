@@ -413,7 +413,7 @@ export default App
 Antd 默认语言是英文，需进行以下设置调整为中文。
 修改src/index.js
 ```js
- import React from 'react'
+    import React from 'react'
     import ReactDOM from 'react-dom'
 +   import { ConfigProvider } from 'antd'
 +   import zhCN from 'antd/es/locale/zh_CN'
@@ -786,5 +786,876 @@ M       return <div className="M-header">Header:{title}</div>
     export default Header
 ```
 运行看下已经生效。
-#### d.React Developer Tools 浏览器插件
+### (7)React Developer Tools 浏览器插件
 为了方便调试react项目，建议安装chrome插件。
+先科学上网，在chrome网上应用店或 https://www.extfans.com/ 里搜索“React Developer Tools”并安装。
+安装完成后，打开chrome DevTools，点击Components按钮，可以清晰的看到react项目代码结构以及各种传参。
+### (8)Redux及相关插件
+#### a.安装redux 
+`yarn add redux`
+仅仅安装redux也是可以使用的，但是比较麻烦，redux里更新store中的数据，需要手动订阅（subcribe）更新，可以借助另一个插件（react-redux）提高开发效率。
+#### b.安装react-redux
+`yarn add react-redux`
+react-redux允许通过connect方法，<b>将store中的数据映射到组件的props</b>>,省去了store订阅。原state中读取store的属性改用props读取。
+#### c.安装redux-thunk
+`yarn add redux-thunk`
+
+redux-thunk允许在actionCreators里传递函数类型的数据。这样可以把业务逻辑（例如接口请求）集中写在actionCreator.js，方便复用的同时，可以使组件的主文件更简洁。
+
+#### d.安装redux浏览器插件
+
+为了更方便跟踪redux状态，建议安装chrome插件。这个插件可记录每次redux的变化，非常便于跟踪调式。
+
+先科学上网，在chrome网上应用店里搜索“Redux DevTools”并安装。
+
+安装完成后还不能直接使用，需要在项目代码中进行配置。
+
+#### e.创建store
+安装以上各种插件后，可以store用来管理状态数据了。
+
+如果项目比较简单，只有一两个页面，可以只创建一个总store管理整体项目。目录结构参考如下：
+```
+    ├─ /src   
++   |  ├─ /store
++   |  |  ├─ actionCreators.js
++   |  |  ├─ constants.js       <-- 定义方法的常量
++   |  |  ├─ index.js
++   |  |  └─ reducer.js
+```
+以下是各文件的代码：
+
+src/store/index.js：
+
+```js
+import { createStore, applyMiddleware, compose } from 'redux'
+import reducer from './reducer'
+import thunk from 'redux-thunk'
+
+// 这里让项目支持浏览器插件Redux DevTools
+const composeEnhancers = typeof window === 'object' &&
+  window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ ?
+  window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__({}) : compose
+
+const enhancer = composeEnhancers(
+  applyMiddleware(thunk)
+);
+
+const store = createStore(
+  reducer,
+  enhancer
+)
+
+export default store
+```
+以上是store的核心代码，支持了Redux DevTools。同时，利用redux的集成中间件（applyMiddleware）功能将redux-thunk集成进来，最终创建了store。
+
+src/store/constants.js：
+```js
+export const SET_DATA = 'SET_DATA'
+```
+创建这个定义常量的文件，是因为方便被下面的reducer.js和actionCreators.js同时引用，便于统一修改和管理。
+
+src/store/actionCreators.
+
+```js
+import * as constants from './constants'
+
+export const getData = (data) => ({
+  type: constans.SET_DATA,
+  data
+})
+```
+
+src/store/reducer.js：
+
+```js
+import * as constants from './constants'
+
+// 初始默认的state
+const defaultState = {
+    myData: null
+}
+
+const reducer = (state = defaultState, action) => {
+    // 由于state是引用型，不能直接修改，否则是监测不到state发生变化的。因此需要先复制一份进行修改，然后再返回新的state。
+    let newState = Object.assign({}, state)
+    switch(action.type) {
+        case constants.SET_DATA:
+            newState.myData = action.data
+            return newState
+        default:
+            return state
+    }
+}
+
+export default reducer
+```
+以上代码，在store设置了一个myData。现在，state修改起来还是有点小麻烦，如何更好地解决这个问题，之后会提到。
+
+实际项目中很少只用一个总store库来管理的。因此，在下面章节的分库内容中具体讲述Redux的使用方法。
+
+#### f.复杂项目store分解
+当项目的页面较多，如果数据都集中放在一个store里，维护成本将会变高。接下来分享下如何将store分解到各个组件中。
+
+一般来说，每个组件有自己的store（分库），再由src/store作为总集，集成每个组件的store。
+
+以header和login两个组件为例，分别创建组件自己的store，文件结构跟store总集一致。
+
+目录结构变动如下：
+
+```
+    |  |  ├─ /components
+    |  |  |  └─ /header
++   |  |  |     ├─ /store
++   |  |  |     |  ├─ actionCreators.js
++   |  |  |     |  ├─ constants.js      
++   |  |  |     |  ├─ index.js
++   |  |  |     |  └─ reducer.js
+    |  |  |     ├─ header.styl
+    |  |  |     └─ index.js
+    |  |  ├─ /pages
+    |  |  |  ├─ /login
++   |  |  |  |  ├─ /store
++   |  |  |  |  |  ├─ actionCreators.js
++   |  |  |  |  |  ├─ constants.js
++   |  |  |  |  |  ├─ index.js
++   |  |  |  |  |  └─ reducer.js
+    |  |  |  |  ├─ login.styl
+    |  |  |  |  └─ index.js
+```
+
+src/components/header/store/index.js及src/pages/login/store/index.js：
+
+```js
+import reducer from './reducer'
+import * as actionCreators from './actionCreators'
+import * as constants from './constants'
+
+export { reducer, actionCreators, constants}
+```
+
+其实就是把当前组件store（分库）下的其他文件集中起来作为统一输出口。
+
+src/components/header/store/constants.js：
+
+```js
+const ZONE = 'components/header/'
+
+export const SET_DATA = ZONE + 'SET_DATA'
+```
+ZONE是用来避免与其他组件的constants重名。
+
+同样的方式，在login下进行创建store。
+
+src/pages/login/store/constants.js：
+
+```js
+const ZONE = 'pages/login/'
+
+export const SET_DATA = ZONE + 'SET_DATA'
+```
+src/components/header/store/actionCreators.js及src/pages/login/store/actionCreators.js：
+
+```js
+import * as constants from './constants'
+
+export const setData = (data) => ({
+  type: constants.SET_DATA,
+  data
+})
+```
+
+src/components/header/store/reducer.js：
+
+```js
+import * as constants from './constants'
+
+// 初始默认的state
+const defaultState = {
+    myHeaderData: null
+}
+
+const reducer = (state = defaultState, action) => {
+    // 由于state是引用型，不能直接修改，否则是监测不到state发生变化的。因此需要先复制一份进行修改，然后再返回新的state。
+    let newState = Object.assign({}, state)
+    switch(action.type) {
+        case constants.SET_DATA:
+            newState.myHeaderData = action.data
+            return newState
+        default:
+            return state
+    }
+}
+
+export default reducer
+```
+
+同样的方式，src/pages/login/store/reducer.js：
+
+```js
+import * as constants from './constants'
+
+// 初始默认的state
+const defaultState = {
+    myLoginData: null
+}
+
+const reducer = (state = defaultState, action) => {
+    // 由于state是引用型，不能直接修改，否则是监测不到state发生变化的。因此需要先复制一份进行修改，然后再返回新的state。
+    let newState = Object.assign({}, state)
+    switch(action.type) {
+        case constants.SET_DATA:
+            newState.myLoginData = action.data
+            return newState
+        default:
+            return state
+    }
+}
+
+export default reducer
+```
+
+然后修改项目store总集，目录结构变动如下：
+
+```
+    ├─ /src   
+    |  ├─ /store
+-   |  |  ├─ actionCreators.js  <-- 删除
+-   |  |  ├─ constants.js       <--删除
+    |  |  ├─ index.js
+M   |  |  └─ reducer.js
+```
+src/store/reducer.js重写如下：
+
+```js
+import { combineReducers } from 'redux'
+import { reducer as loginReducer } from '@/pages/login/store'
+import { reducer as headerReducer } from '@/components/header/store'
+
+const reducer = combineReducers({
+    login: loginReducer,
+    header: headerReducer
+})
+
+export default reducer
+```
+
+以上代码的作用就是把login和header的store引入，然后通过combineReducers合并在一起，并分别加上唯一的对象key值。
+
+这样的好处非常明显：
+- 避免各组件的store数据互相污染。
+- 组件独立维护自己的store，减少维护成本。
+- 非常建议使用这种方式维护store。
+
+
+
+#### g.安装使用immutable
+在e小节，提到了store里不能直接修改state，因为state是引用类型，直接修改可能导致监测不到数据变化。
+
+immutable.js从字面上就可以明白，immutable的意思是“不可改变的”。使用immutable创建的数据是不可改变的，对immutable数据的任何修改都会返回一个新的immutable数据，不会改变原始immutable数据。
+
+immutable.js提供了很多方法，非常方便修改对象或数组类型的引用型数据。
+
+安装immutable和redux-immutable，执行：
+
+`yarn add immutable redux-immutable`
+
+然后对代码进行改造：
+
+src/store/reducer.js：
+
+```js
+-   import { combineReducers } from 'redux'
++   import { combineReducers } from 'redux-immutable'
+    ...(略)
+```
+
+以上代码就是把combineReducers换成redux-immutable里的。
+
+然后修改src/pages/login/store/reducer.js：
+
+```js
+  import * as constants from './constants'
++   import { fromJS } from 'immutable'
+    
+    // 初始默认的state
+M   const defaultState = fromJS({
+        myLoginData: null,
+M   })
+    
++   const getData = (state, action) => {
++       return state.set('myLoginData', action.data)
++   }
+    
+    const reducer = (state = defaultState, action) => {
+        //  由于state是引用型，不能直接修改，否则是监测不到state发生变化的。因此需要先复制一份进行修改，然后再返回新的state。
+-       // let newState = Object.assign({}, state)
+        switch (action.type) {
+            case constants.SET_DATA:
+-               // newState.myLoginData = action.data
+-               // return newState
+                return getData(state, action)
+            default:
+                return state
+        }
+    }
+    
+    export default reducer
+```
+
+ps:immutable的介入，就是利用fromJS方法，把原始的JS类型转化为immutable类型。
+
+由于state已经是immutable类型了，可以使用immutable的set方法进行数据修改，并返回一个新的state。代码简洁很多，不需要手动通过Object.assign等方法去复制再处理了。
+
+header组件的代码修改同理不再赘述。
+
+immutable还有很多其他用法，具体请查看官方文档：https://immutable-js.com/docs/v4.1.0
+
+
+#### h.对接react-redux与store
+
+下面来对接react-redux与store，让全部组件都能方便引用store。
+
+修改src/index.js:
+
+```js
+    import React from 'react'
+    import ReactDOM from 'react-dom'
+    import { ConfigProvider } from 'antd'
+    import zhCN from 'antd/es/locale/zh_CN'
+    import App from './App'
++   import { Provider } from 'react-redux'
++   import store from './store'
+    // 全局样式
+    import '@/common/stylus/frame.styl'
+    
+    const antdConfig = {
+        locale: zhCN,
+    }
+    
+    ReactDOM.render(
+        <ConfigProvider {...antdConfig}>
++           <Provider store={store}>
+                <App />
++           </Provider>
+        </ConfigProvider>,
+        document.getElementById('root')
+    )
+```
+
+以上代码就是用react-redux提供的Provider，把store传给了整个App。
+
+在需要使用store的组件中，要使用react-redux提供的connect方法对组件进行包装。
+
+
+#### i.在login页面设置并实时读取Redux变量
+
+以login为例，修改src/pages/login/index.js：
+
+```js
+    import { useNavigate } from 'react-router-dom'
+    import { Button, Input } from 'antd'
+    import imgLogo from './logo.png'
+    import Header from '@/components/header'
++   import { connect } from 'react-redux'
++   import * as actionCreators from './store/actionCreators'
+    import './login.styl'
+    
+M   function Login(props) {
++       const { myLoginData, setData } = props
+    
+        // 创建路由钩子
+        const navigate = useNavigate()
+    
+        return (
+            <div className="P-login">
+                <Header
+                    title="login"
+                    info={() => {
+                        console.log('info:login')
+                    }}
+                />
+                <img src={imgLogo} alt="" className="logo" />
++               <div className="ipt-con">login store: myData = {myLoginData}</div>
++               <div className="ipt-con">
++                   <button onClick={() => {setData('123456')}}>更改login store的myData</button>
++               </div>
+                <div className="ipt-con">
+                    <Input placeholder="账号" />
+                </div>
+                <div className="ipt-con">
+                    <Input.Password placeholder="密码" />
+                </div>
+                <div className="ipt-con">
+                    <Button
+                        type="primary"
+                        block={true}
+                        onClick={() => {
+                            navigate('/home')
+                        }}
+                    >
+                        登录
+                    </Button>
+                </div>
+            </div>
+        )
+    }
+    
++   // 把store中的数据映射到组件的props
++   const mapStateToProps = (state) =>{
++       return {
++           // 数组第一个元素的login，对应的是src/store/reducer.js中定义的login分库名称
++           myLoginData: state.getIn(['login', 'myLoginData']),
++       }
++   } 
++   
++   // 把store的Dispatch映射到组件的props
++   const mapDispatchToProps = (dispatch) => ({
++       setData(data) {
++           const action = actionCreators.setData(data)
++           dispatch(action)
++       },
++   })
+   
+-   // export default Login
+M   export default connect(mapStateToProps, mapDispatchToProps)(Login)
+```
+
+关键点说明：
+
+1. 注意代码最后一行，export的数据被connect方法包装了。
+2. 通过mapStateToProps和mapDispatchToProps方法，把store里的state和dispatch都映射到了组件的props。这样可以直接通过props进行访问了，store中数据的变化会直接改变props从而触发组件的视图更新。
+3. state.getIn()方法是来自于redux-immutable的。
+
+点击按钮后，可以看到页面中显示的myData发生了变化，通过Redux DevTools可进行可视化跟踪查看。
+
+
+#### j.在header组件实时读取Redux变量
+接下来，要实现在header组件中实时读取在login页面设置的myLoginData。
+
+修改src/components/header/index.js：
+
+```js
++   import { connect } from 'react-redux'
+    import './header.styl'
+    
+    function Header(props) {
+        
+M       // 接收来自父组件及Redux的数据
+M       const { title, info, myLoginData } = props
+    
+        // 如果info存在，则执行info()
+        info && info()
+    
+        return (
+            <div className="M-header">
+                Header:{title}
++               <span style={{ marginLeft: 20 }}>myLoginData:{myLoginData}</span>
+            </div>
+        )
+    }
+    
++   // 把store中的数据映射到组件的props
++   const mapStateToProps = (state) => {
++       return {
++           // 数组第一个元素的login，对应的是src/store/reducer.js中定义的login分库名称
++           myLoginData: state.getIn(['login', 'myLoginData']),
++       }
++   }
+    
+-   // export default Header
+M   export default connect(mapStateToProps, null)(Header)
+```
+
+由于在header中只用到了读取Redux的myLoginData，所以不需要mapDispatchToProps方法了。
+
+这里是通过Redux实时获取的，而非通过父子组件传递方式。因此同样的方式可以在其他页面或者组件中直接使用，无需考虑组件的父子关系。
+
+现在点击“更改login store的myData”，可以发现header组件可以正常实时获取myLoginData了。
+
+
+#### k.Redux开发小结
+
+其实react-redux、redux-thunk、immutable都是围绕如何简化redux开发的。
+
+- react-redux是为了简化redux通过订阅方式修改state的繁琐过程。
+
+- redux-thunk是为了redux的dispatch能够支持function类型的数据，请回顾8.9章节中login页面代码的mapDispatchToProps。
+
+- immutable是为了解决store中的数据不能被直接赋值修改的问题（引用类型数据的变化导致无法监测到数据的变化）。
+
+### (9)基于axios封装公用API库
+
+#### a.安装axios
+`yarn add axios`
+
+#### b.封装公用API库
+src/api/index.js：
+
+```js
+import axios from 'axios'
+import { createHashHistory } from 'history'
+import { Modal } from 'antd'
+
+let history = createHashHistory()
+
+// 配合教程演示组件外路由跳转使用，无实际意义
+export const goto = (path) => {
+    history.push(path)
+}
+
+// 开发环境地址
+let API_DOMAIN = '/api/'
+if (process.env.NODE_ENV === 'production') {
+    // 正式环境地址
+    API_DOMAIN = 'http://xxxxx/api/'
+}
+
+// 用户登录信息在localStorage中存放的名称
+export const SESSION_LOGIN_INFO = 'loginInfo'; 
+
+// API请求正常，数据正常
+export const API_CODE = {
+    // API请求正常
+    OK: 200,
+    // API请求正常，数据异常
+    ERR_DATA: 403,
+    // API请求正常，空数据
+    ERR_NO_DATA: 301,
+    // API请求正常，登录异常
+    ERR_LOGOUT: 401,
+}
+
+// API请求异常统一报错提示
+export const API_FAILED = '网络连接异常，请稍后再试'
+export const API_LOGOUT = '您的账号已在其他设备登录，请重新登录'
+
+export const apiReqs = {
+    // 登录（成功后将登录信息存入localStorage）
+    signIn: (config) => {
+        axios
+            .post(API_DOMAIN + 'login', config.data)
+            .then((res) => {
+                let result = res.data
+                config.done && config.done(result)
+                if (result.code === API_CODE.OK) {
+                    window.localStorage.setItem(
+                        SESSION_LOGIN_INFO,
+                        JSON.stringify({
+                            uid: result.data.loginUid,
+                            nickname: result.data.nickname,
+                            token: result.data.token,
+                        })
+                    )
+                    config.success && config.success(result)
+                } else {
+                    config.fail && config.fail(result)
+                }
+            })
+            .catch(() => {
+                config.done && config.done()
+                config.fail &&
+                config.fail({
+                        message: API_FAILED,
+                    })
+            })
+    },
+    // 管登出（登出后将登录信息从localStorage删除）
+    signOut: () => {
+        const { uid, token } = getLocalLoginInfo()
+        let headers = {
+            loginUid: uid,
+            'access-token': token,
+        }
+        let axiosConfig = {
+            method: 'post',
+            url: API_DOMAIN + 'logout',
+            headers,
+        }
+        axios(axiosConfig)
+            .then((res) => {
+                logout()
+            })
+            .catch(() => {
+                logout()
+            })
+    },
+    // 获取用户列表
+    getUserList: (config) => {
+        config.method = 'get'
+        config.url = API_DOMAIN + 'user/getUserList'
+        apiRequest(config)
+    },
+    // 修改用户信息
+    modifyUser: (config) => {
+        config.url = API_DOMAIN + 'user/modify'
+        apiRequest(config)
+    },
+}
+
+// 从localStorage获取用户信息
+export function getLocalLoginInfo() {
+    return JSON.parse(window.localStorage[SESSION_LOGIN_INFO])
+}
+
+// 失效退出界面
+export function logout() {
+    window.localStorage.removeItem(SESSION_LOGIN_INFO)
+    history.push('/login')
+}
+
+/*
+ * API请求封装（带验证信息）
+ * config.history: [必填]用于页面跳转等逻辑
+ * config.method: [必须]请求method
+ * config.url: [必须]请求url
+ * config.data: 请求数据
+ * config.formData: 是否以formData格式提交（用于上传文件）
+ * config.success(res): 请求成功回调
+ * config.fail(err): 请求失败回调
+ * config.done(): 请求结束回调
+ */
+export function apiRequest(config) {
+    const loginInfo = JSON.parse(window.localStorage.getItem(SESSION_LOGIN_INFO))
+    if (config.data === undefined) {
+        config.data = {}
+    }
+    config.method = config.method || 'post'
+
+    // 封装header信息
+    let headers = {
+        loginUid: loginInfo ? loginInfo.uid : null,
+        'access-token': loginInfo ? loginInfo.token : null,
+    }
+
+    let data = null
+
+    // 判断是否使用formData方式提交
+    if (config.formData) {
+        headers['Content-Type'] = 'multipart/form-data'
+        data = new FormData()
+        Object.keys(config.data).forEach(function (key) {
+            data.append(key, config.data[key])
+        })
+    } else {
+        data = config.data
+    }
+
+    // 组装axios数据
+    let axiosConfig = {
+        method: config.method,
+        url: config.url,
+        headers,
+    }
+
+    // 判断是get还是post，并加入发送的数据
+    if (config.method === 'get') {
+        axiosConfig.params = data
+    } else {
+        axiosConfig.data = data
+    }
+
+    // 发起请求
+    axios(axiosConfig)
+        .then((res) => {
+            let result = res.data
+            config.done && config.done()
+            
+            if (result.code === API_CODE.ERR_LOGOUT) {
+                // 如果是登录信息失效，则弹出Antd的Modal对话框
+                Modal.error({
+                    title: result.message,
+                    // 点击OK按钮后，直接跳转至登录界面
+                    onOk: () => {
+                        logout()
+                    },
+                })
+            } else {
+                // 如果登录信息正常，则执行success的回调
+                config.success && config.success(result)
+            }
+        })
+        .catch((err) => {
+            // 如果接口不通或出现错误，则弹出Antd的Modal对话框
+            Modal.error({
+                title: API_FAILED,
+            })
+            // 执行fail的回调
+            config.fail && config.fail()
+            // 执行done的回调
+            config.done && config.done()
+        })
+}
+```
+这里主要实现了两个方面：
+1. 通过apiReqs把项目所有api进行统一管理。
+2. 通过apiRequest方法，实现了统一的token验证、登录状态失效报错以及请求错误报错等业务逻辑。
+
+> 为什么signIn和signOut方法没有像getUserList和modifyUser一样调用apiRequest呢？
+> 因为signIn和signOut的逻辑比较特殊，signIn并没有读取localStorage，而signOut需要清除localStorage，这两个逻辑是与其他API不同的，所以单独实现了。
+
+
+
+#### c.Mock.js安装与使用
+
+在开发过程中，为了方便前端独自调试接口，经常使用Mock.js拦截Ajax请求，并返回预置好的数据。本小节介绍下如何在react项目中使用Mock.js。
+
+执行安装：
+
+`yarn add mockjs`
+
+在src下新建mock.js，代码如下：
+
+```js
+import Mock from 'mockjs'
+
+const domain = '/api/'
+
+// 模拟login接口
+Mock.mock(domain + 'login', function () {
+    let result = {
+      code: 200,
+      message: 'OK',
+      data: {
+          loginUid: 10000,
+          nickname: '兔子先生',
+          token: 'yyds2022'
+      }
+    }
+    return result
+})
+```
+然后在src/index.js中引入mock.js:
+
+```js
+    import React from 'react'
+    import ReactDOM from 'react-dom'
+    import { ConfigProvider } from 'antd'
+    import zhCN from 'antd/es/locale/zh_CN'
+    import App from './App'
+    import { Provider } from 'react-redux'
+    import store from './store'
++   import './mock'
+    ...（略）
+```
+
+这样，在项目中请求/api/login的时候，就会被Mock.js拦截，并返回mock.js中模拟好的数据。
+
+#### d.发起API请求
+
+继续完善login页面，实现一个API请求。
+
+src/pages/login/index.js：
+
+```js
++   import { useState } from 'react'
+    import { useNavigate } from 'react-router-dom'
+    import { Button, Input } from 'antd'
+    import imgLogo from './logo.png'
+    import Header from '@/components/header'
+    import { connect } from 'react-redux'
+    import * as actionCreators from './store/actionCreators'
++   import { apiReqs } from '@/api'
+    import './login.styl'
+    
+    function Login(props) {
+        const { myLoginData, setData } = props
+        // 创建路由钩子
+        const navigate = useNavigate
+        
++       // 组件中自维护的实时数据
++       const [account, setAccount] = useState('')
++       const [password, setPassword] = useState('')
+        
+        // 登录
++       const login = () => {
++           apiReqs.signIn({
++               data: {
++                   account,
++                   password
++               },
++               success: (res) => {
++                   console.log(res)
++                   navigate('/home')
++               }
++           })
++       }
+
+        return (
+            <div className="P-login">
+                ...（略）
+                <div className="ipt-con">
+M                   <Input placeholder="账号" value={account} onChange={(e)=>{setAccount(e.target.value)}} />
+                </div>
+                <div className="ipt-con">
+M                   <Input.Password placeholder="密码" value={password} onChange={(e)=>{setPassword(e.target.value)}}  />
+                </div>
+                <div className="ipt-con">
+M                   <Button type="primary" block={true} onClick={login}>登录</Button>
+                </div>
+                
+                ...（略）
+```
+
+在login页面点击“登录”按钮，页面正常跳转。
+
+在Console中可以看到mockjs返回的模拟请求数据。
+
+但是在Network的Fetch/XHR里是看不到任何发起的请求的。因为请求被mockjs拦截了，实际上并没有发出真正的请求。
+
+
+#### e.设置开发环境的反向代理请求
+
+在react开发环境中，发起真正的情况通常会遇到跨域问题。比如，默认情况下当前demo项目执行yarn start后会运行在http://localhost:3000。本地在http://localhost启动了一个API后端服务。由于端口不一致，请求会存在跨域问题。可以借助http-proxy-middleware工具实现反向代理。
+
+执行安装：
+
+`yarn add http-proxy-middleware --dev`
+
+在src下创建setupProxy.js，代码如下：
+
+```js
+/**
+ * 反向代理配置
+ * 只要请求地址是以"/api"开头，那就反向代理到http://localhost域名下，跨域问题解决！大家可以根据实际需求进行修改。
+ */
+const { createProxyMiddleware } = require('http-proxy-middleware');
+module.exports = function (app) {
+    app.use(
+        // 开发环境API路径匹配规则
+        '^/api',
+        createProxyMiddleware({
+            // 要代理的真实接口API域名
+            target: 'http://localhost',
+            changeOrigin: true
+        })
+    )
+}
+```
+
+一定记得要把mockjs注释掉，否则会被拦截的。
+
+修改src/index.js:
+`-   import './mock'`
+
+> 注：setupProxy.js设置后，一定要重启项目才生效。
+
+通过Console可以看到后端API返回的真实数据，在Network里也可以看到发起的请求了。
+
+### (10)build项目
+在build前还需要做一步配置，否则build版本网页中的文件引用都是绝对路径，运行后是空白页面。
+
+修改package.json：
+
+```json
+    "name": "react-app5",
+	"version": "0.1.0",
+	"private": true,
++	"homepage": "./",
+	...（略）
+```
+
+执行：`yarn build`
+
+生成的文件在项目根目录的build目录中，打开index.html即可看到正常运行的项目。
+
