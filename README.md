@@ -1664,4 +1664,4 @@ module.exports = function (app) {
 执行：`yarn build`
 
 生成的文件在项目根目录的build目录中，打开index.html即可看到正常运行的项目。
-
+[![Security Status](https://www.murphysec.com/platform3/v3/badge/1610643356967796736.svg)](https://www.murphysec.com/accept?code=71f6be1775ae95bfc344a470ce18426c&type=1&from=2&t=1)
